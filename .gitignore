@@ -1,0 +1,17 @@
+# Local credentials and runner artifacts
+.env
+.env.*
+!.env.example
+runner-output/
+.scout-sandbox/
+# Legacy fixture directory/link retained for historical paths.
+.jev-sandbox/
+__pycache__/
+*.pyc
+*.egg-info/
+tooling/appium/node_modules/
+tooling/appium/.appium/
+dashboard/node_modules/
+dashboard/.next/
+dashboard/tsconfig.tsbuildinfo
+.DS_Store
