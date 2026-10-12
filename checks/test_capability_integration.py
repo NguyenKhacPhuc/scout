@@ -45,6 +45,9 @@ class HostIntegration(unittest.TestCase):
 
     def test_actual_baseline_cli_and_mcp_reject_new_export_before_device_inventory(self):
         root=Path(__file__).resolve().parents[1]
+        # The pre-contract baseline exists only in the original development history.
+        if subprocess.run(['git','cat-file','-e','56a03b5^{commit}'],cwd=root,capture_output=True).returncode:
+            self.skipTest('Baseline commit 56a03b5 is not in this repository history.')
         old={'id':'synthetic','revision':1,'goal':'Synthetic','steps':'Observe','expected':'Synthetic','app_id':PKG}
         new=export_case({**old,'execution':purchase_spec()})
         with tempfile.TemporaryDirectory() as folder:

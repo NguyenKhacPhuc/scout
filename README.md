@@ -1,71 +1,190 @@
 # Scout
 
-[Source repository](https://github.com/NguyenKhacPhuc/scout)
+<!-- mcp-name: io.github.NguyenKhacPhuc/scout -->
 
-Scout is a mobile testing platform for Android and iOS. It brings test authoring, automation, checkpoint verification, evidence, sandbox scenarios, and human review into one workspace. Its future mascot is a curious fox that explores apps and investigates results.
+[![CI](https://github.com/NguyenKhacPhuc/scout/actions/workflows/ci.yml/badge.svg)](https://github.com/NguyenKhacPhuc/scout/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/scout-mobile)](https://pypi.org/project/scout-mobile/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/NguyenKhacPhuc/scout/blob/main/LICENSE)
 
-The current execution engine adapts the [Jev Ultrafast](https://github.com/browser-use/jev-ultrafast) observe–choose–act design with Appium device control. Jev is one component of Scout, alongside the dashboard, MCP tools, network sandbox, scenario matrices, and review workflows.
+**AI-driven mobile testing that your coding agent can run.** Describe a flow in plain
+language. Scout then drives a real Android or iOS app through Appium, checks the result
+against checkpoints you defined, and keeps the evidence: screenshots, a step-by-step
+trace, model decisions and screen recordings.
 
-## Naming and migration
+Scout runs as an [MCP](https://modelcontextprotocol.io) server. You can use it from
+Claude Desktop, Claude Code, Codex or any other MCP client. There is also an optional
+local dashboard for test libraries, runs and review.
 
-Python source lives in `scout_mobile/`; launch the CLI with `scout` and MCP with `scout-mcp`. Settings use the `SCOUT_*` prefix. See [rename and compatibility notes](docs/rebranding.md) for existing configuration and historical results.
+```text
+You:   On the connected Pixel, sign in with my test account and confirm the
+       account settings screen appears.
+Agent: run_mobile_test_from_prompt → Passed
+       required checkpoints: login_form ✓ (during run), account_screen ✓ (final)
+       evidence: screenshots, redacted trace, model decisions
+```
+
+## Why Scout
+
+- **A test passes only when it is verified.** The agent saying it is "done" is not
+  enough. Scout checks each required checkpoint against what is actually on screen.
+  - If a check can't be verified, the result is `Inconclusive`.
+  - If a starting condition isn't met, the result is `Blocked`.
+  - Device and model failures are reported as `Execution error`.
+- **Evidence you can share.** Every run saves `result.json`, a redacted action trace,
+  the model's decisions with their confidence scores, safe screenshots and MP4 clips.
+  You can export them as a ZIP for a PR or a ticket.
+- **Explore first, then repeat the test.** Explore an app from a prompt, then save the
+  flow as a versioned test case with typed actions. Rerun it, combine cases into suites,
+  and compare results across Android and iOS.
+- **Safety by default.** Scout refuses purchases, transfers, subscriptions and account
+  deletion. It stops before legal or privacy consent unless you explicitly allow it.
+  It keeps credentials out of model requests and saved output, and it restores any
+  device settings it changed.
+- **Network sandbox.** Replay synthetic HTTP/WebSocket fixtures through mitmproxy, or
+  record real traffic and edit it into fixtures. Scenario matrices then run one case
+  against several backend variants, for example error and empty states.
+
+## Quickstart (MCP server)
+
+**Prerequisites**
+
+- [uv](https://docs.astral.sh/uv/) (or Python 3.11+ with pip).
+- For Android: `adb`, plus an authorized device or emulator.
+- Appium 3 with the driver for your platform:
+
+  ```sh
+  npm install -g appium
+  appium driver install uiautomator2    # Android
+  appium driver install xcuitest        # iOS (macOS only)
+  ```
+
+  Scout starts Appium on `127.0.0.1:4723` when it isn't already running.
+
+**1. Add the server to your MCP client.**
+
+For Claude Code:
+
+```sh
+claude mcp add scout -- uvx scout-mobile
+```
+
+For Claude Desktop, add this under `mcpServers` in `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "scout": { "command": "uvx", "args": ["scout-mobile"] }
+  }
+}
+```
+
+**2. Configure a model.** Put the key in `~/.scout/.env`. Scout reads it locally, so
+the key never goes through your chat:
+
+```sh
+mkdir -p ~/.scout
+curl -fsSL https://raw.githubusercontent.com/NguyenKhacPhuc/scout/main/.env.example -o ~/.scout/.env
+```
+
+Then fill in **one** of the two options:
+
+- **TypeSafe Jev (default).** Set `TYPESAFE_API_KEY`. This is the full feature set,
+  including model-judged `classification` checkpoints.
+- **Any OpenAI-compatible chat model.** Set `SCOUT_DECISION_AGENT=llm`, plus
+  `TEXT_MODEL_API_KEY`, `TEXT_MODEL_BASE_URL` and `TEXT_MODEL`. The model then chooses
+  actions. Checkpoints with `text_present` / `text_absent` work without TypeSafe.
+  `classification` checkpoints still need `TYPESAFE_API_KEY`.
+
+For sign-in tests, also set `SCOUT_TEST_EMAIL` and `SCOUT_TEST_PASSWORD` for a
+disposable test account.
+
+**3. Ask your agent.** For example: *"List my Android devices. Then use Scout to open
+com.example.app, go to Settings, and confirm the version number is shown."* Run
+`list_android_devices`, `search_android_packages` and `get_test_case_template`
+first, so the agent picks the right device and app and defines good checkpoints.
+
+Runs and evidence are stored in `~/.scout/runner-output/`. Set `SCOUT_HOME` to
+store them somewhere else.
+
+## Full setup (dashboard + MCP from source)
+
+The dashboard is a local web app for workspaces, test libraries, suites, run history,
+evidence review, the sandbox and scenario matrices. It ships with the source checkout:
+
+```sh
+git clone https://github.com/NguyenKhacPhuc/scout.git && cd scout
+uv sync
+npm ci --prefix tooling/appium          # project-local Appium; see docs/appium-trial.md
+npm ci --prefix dashboard
+cp .env.example .env                    # then fill in values locally
+```
+
+Point your MCP client at the checkout. Prompt-driven runs start the dashboard and the
+device bridge on demand:
+
+```sh
+claude mcp add scout -- uv run --directory /path/to/scout scout-mcp
+```
+
+You can also start them yourself: `cd dashboard && npm run dev` for the dashboard and
+`uv run python -m scout_mobile.local_server` for the device bridge. See the
+[dashboard setup](https://github.com/NguyenKhacPhuc/scout/blob/main/dashboard/README.md).
+
+The CLI runs an exported case directly:
+
+```sh
+uv run scout --case case.json --package com.example.app --serial DEVICE_SERIAL
+uv run scout nodes        # print the run pipeline
+```
+
+## How it works
+
+Each run is a pipeline of inspectable, pluggable nodes in three phases:
+
+1. **Setup** runs once. It takes a per-device lease, checks the app is installed,
+   launches it, and checks the starting conditions on the opening screen.
+2. **Step loop** repeats until the run ends:
+   - Scout observes the screen through the native accessibility tree.
+   - A model picks one operation and one target it actually observed.
+   - Guards check for app-boundary, consent, purchase and credential problems.
+   - Scout re-checks the target and acts on it.
+   - When the model reports DONE, checkpoints decide the verdict.
+3. **Teardown** restores device settings and writes the evidence.
+
+Run `scout nodes` to print the live pipeline. Plugins can insert, replace or disable
+nodes that aren't locked. Safety nodes are locked and can't be removed or replaced. See
+[architecture](https://github.com/NguyenKhacPhuc/scout/blob/main/docs/architecture.md).
 
 ## Documentation
 
-Open **Documentation** in the dashboard sidebar or visit `/docs` on its active local URL (normally [localhost:5173/docs](http://localhost:5173/docs)). The searchable product guide covers concepts, philosophy, setup, Android/iOS, MCP tools, verification, sandbox replay, scenario matrices, reviews, and troubleshooting. It contains no account data and can be read without signing in. Technical setup guides remain in `docs/` and `dashboard/README.md`.
+| Guide | Covers |
+| --- | --- |
+| [MCP tools](https://github.com/NguyenKhacPhuc/scout/blob/main/docs/mcp.md) | Every tool, prompt-driven runs, saved cases, suites, evidence |
+| [Android / Appium](https://github.com/NguyenKhacPhuc/scout/blob/main/docs/appium-trial.md) | Appium install, ADB fallback, measurements |
+| [iOS](https://github.com/NguyenKhacPhuc/scout/blob/main/docs/ios-appium.md) | XCUITest, WebDriverAgent signing, simulators and devices |
+| [Network sandbox](https://github.com/NguyenKhacPhuc/scout/blob/main/docs/sandbox.md) | Fixtures, recording, proxy routing, test CA |
+| [Test accounts](https://github.com/NguyenKhacPhuc/scout/blob/main/docs/test-account.md) | Keeping credentials local and redacted |
+| [Architecture](https://github.com/NguyenKhacPhuc/scout/blob/main/docs/architecture.md) | Layers, pipeline nodes, plugins |
+| [Agent rules](https://github.com/NguyenKhacPhuc/scout/blob/main/AGENTS.md) | Instructions to copy into your app repo's `AGENTS.md` / `CLAUDE.md` |
 
-## Current state
+The dashboard also has a searchable in-app guide at `/docs`.
 
-- `dashboard/`: create and revise test cases, record manual runs, import Scout runner results, inspect per-step questions, answers, probabilities, confidence, and latency, attach evidence, and review saved test snapshots.
-- `scout_mobile/`: Python runner using native accessibility observations plus TypeSafe's Jev model to choose an indexed operation and target. It re-observes targets before acting and verifies required checkpoints before reporting Passed. The runner is layered, and each run executes as a pipeline of inspectable, pluggable nodes. Run `scout nodes` or see [architecture](docs/architecture.md).
-- MCP server: local tools for device discovery, Scout test execution, run history, and result inspection; see [MCP setup](docs/mcp.md).
-- Saved-library MCP tools discover cases/suites, inspect revisions, rerun cases or regressions, and monitor asynchronous progress with results synced to the local dashboard.
-- Analysis MCP tools draft sandbox variants, inspect network coverage and failure diagnostics, compare Android/iOS runs, and append reviews or labeled assistant notes.
-- Scenario matrices run one saved case against several fixtures with variant-specific checkpoints, frozen snapshots, live progress and grouped results in the dashboard or MCP.
-- `.env`: local, Git-ignored owner-only UAT credentials and model keys. Copy `.env.example` if needed, then fill values locally; see [test account setup](docs/test-account.md). **Do not send credentials in chat or put them in test cases.**
+## Status
 
-The runner supports Android through Appium/UiAutomator2 and iOS through Appium/XCUITest on macOS. Jev chooses operations and targets; Appium provides native observations, actions, and screenshots. ADB supports Android discovery, diagnostics, prompt settings, and recording. ARTEMIS is not used by the runner. It captures an action trace and screenshots, including an authenticated outcome screen when no input field or account value is visible. The runner also captures screen-recording clips on both platforms when recording prerequisites are available for each execution segment; Jev and dashboard imports attach the MP4 clips to the test run when they are available.
+Scout is **alpha**: interfaces may change between minor versions. Android is
+exercised on emulators and physical devices. iOS runs through XCUITest on macOS;
+see the iOS guide for its limitations. Missing or unverifiable evidence is reported as inconclusive,
+never as a pass. Please [open an issue](https://github.com/NguyenKhacPhuc/scout/issues)
+if a screen or flow doesn't work as you expect.
 
-## Run from the dashboard
+## Contributing
 
-Prompt-driven MCP runs start the local dashboard and device bridge on demand when the dashboard dependencies are installed. The returned dashboard link uses the active local port, so it remains openable when the default port is already occupied. For manually launched dashboard runs, start the dashboard with `cd dashboard && npm run dev` and the local device bridge with `uv run python -m scout_mobile.local_server`; runs and safe evidence are saved automatically. See [dashboard runner setup](dashboard/README.md#run-scout-from-the-dashboard).
+Contributions are welcome. See
+[CONTRIBUTING.md](https://github.com/NguyenKhacPhuc/scout/blob/main/CONTRIBUTING.md),
+and look for issues labelled `good first issue` or `help wanted`.
 
-## Run a case
+## License
 
-Appium is the default Android backend and starts automatically when installed.
-Complete the [Appium setup](docs/appium-trial.md) once. Use `--driver adb` only
-when explicitly choosing the previous backend.
-
-1. Add a test case in the dashboard with its platform and app ID. Define observable required checkpoints; a literal visible-text assertion remains available as a legacy fallback.
-2. Export the case JSON from the Test cases table.
-3. Fill the local `.env` with `TYPESAFE_API_KEY`, `SCOUT_TEST_EMAIL`, and `SCOUT_TEST_PASSWORD` for a disposable UAT account. The text-model key is needed only for non-credential text fields.
-4. Run with an attached, authorized Android device. `--package` is the app under test; it can be omitted when the case has an app ID or `SCOUT_DEFAULT_PACKAGE` is set in `.env`:
-
-```sh
-python3 -m scout_mobile --case /absolute/path/to/jev-case.json --package com.example.app --serial DEVICE_SERIAL --adb ~/Library/Android/sdk/platform-tools/adb
-```
-
-By default, each run temporarily disables Android autofill and credential providers, which prevents Samsung Pass and Google Password Manager save-password dialogs from blocking Jev. It also temporarily grants and silences Android 13+ notification permission so its runtime prompt does not block the test. The runner restores the device's original settings and notification permission when the run ends, including after a test failure. Use `--allow-device-prompts` to keep autofill and credential providers enabled for a CLI run; notification prompts remain suppressed. The runner still dismisses recognized prompts if one appears despite the device setting.
-
-The runner writes `result.json`, `trace.json`, `jev-output.json`, and safe screenshots into a timestamped, Git-ignored `runner-output/` directory. Each result includes a separate verification phase with its method, expected visible text, observed screen text, and pass/fail/inconclusive status. `jev-output.json` contains the credential-redacted request questions and Jev answer payload for each model call, including option probabilities, confidence, model, and latency. Import `result.json` from **Test cases → Import Scout result**, then expand a **Jev decision** in the action timeline to see the breakdown or the request/response JSON. Attach `jev-output.json` and screenshots as evidence when needed. The test revision must still match the exported case.
-
-`Passed` requires satisfied required checkpoints, or a successful legacy visible-text substring assertion when no checkpoints are defined. Without verification, Jev's `DONE` yields `Inconclusive`. Missing or unknown starting conditions yield `Blocked`. Device/model errors yield `Execution error`. The runner will not tap controls whose labels suggest purchases, transfers, subscription, or account deletion. Legal and privacy consent gates stop as `Inconclusive` before agreement or submission; the user must explicitly authorize that step. Checkable state is included in screen fingerprints, and repeating an action without an observable screen change stops the run instead of toggling the control repeatedly.
-
-## Local dashboard
-
-See [dashboard setup](dashboard/README.md). The dashboard uses D1 for records and R2 for evidence, with the hosting platform's identity for access control. Its local development sign-in is for the preview only.
-
-### iOS support
-
-The same runner and dashboard now route iOS cases through Appium/XCUITest.
-See [iOS setup and limitations](docs/ios-appium.md) for device discovery,
-WebDriverAgent signing, CLI/MCP use, and recordings.
-
-## Network sandbox
-
-Create reusable synthetic HTTP/WebSocket scenarios in Settings → Sandbox, attach
-one to a case, and review mock-hit evidence in the run's Network tab. See
-[setup, supported behavior, and MCP tools](docs/sandbox.md). The optional sandbox
-extra uses mitmproxy; device proxy routing and test CA trust must be prepared.
-Record → edit → replay captures scoped JSON responses locally, redacts common
-sensitive fields, and creates editable fixture drafts from selected responses.
+[MIT](https://github.com/NguyenKhacPhuc/scout/blob/main/LICENSE). The runner adapts the
+observe–choose–act design of [Jev Ultrafast](https://github.com/browser-use/jev-ultrafast)
+(MIT); see [third-party notices](https://github.com/NguyenKhacPhuc/scout/blob/main/THIRD_PARTY_NOTICES.md).

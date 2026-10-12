@@ -112,6 +112,8 @@ def ensure_dashboard() -> tuple[str, str | None]:
             return f"http://localhost:{port}", bridge_error
 
     dashboard = ROOT / "dashboard"
+    if not dashboard.is_dir():
+        return base_url, "The dashboard ships with the source checkout; clone the repository and set SCOUT_HOME to it to use the dashboard."
     if not (dashboard / "node_modules").is_dir():
         return base_url, "Dashboard dependencies are missing; install them in the dashboard directory."
     npm = shutil.which("npm")

@@ -15,3 +15,5 @@ dashboard/node_modules/
 dashboard/.next/
 dashboard/tsconfig.tsbuildinfo
 .DS_Store
+dist/
+build/

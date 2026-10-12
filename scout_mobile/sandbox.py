@@ -19,7 +19,7 @@ import time
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Literal
-from .config import ROOT,getenv
+from .config import PACKAGE_DIR,ROOT,getenv
 
 STORE = ROOT / '.scout-sandbox'
 ID = r'^[A-Za-z0-9_-]{1,60}$'
@@ -352,7 +352,7 @@ class Session:
             if self.scenario.get('schema_version')==2 and self.run_origin is not None:env['SCOUT_RUN_MONOTONIC_ORIGIN']=str(self.run_origin)
             env['SCOUT_SANDBOX_PARENT_PID'] = str(os.getpid())
             env['SCOUT_SANDBOX_MODE'] = 'record' if self.recording else 'replay'
-            env['PYTHONPATH'] = str(ROOT) + os.pathsep + env.get('PYTHONPATH', '')
+            env['PYTHONPATH'] = str(PACKAGE_DIR.parent) + os.pathsep + env.get('PYTHONPATH', '')
             command = [sys.executable, '-m', 'scout_mobile.sandbox_worker', '--listen-host', config['listen_host'], '--listen-port', str(config['port']), '-q', '--set', 'flow_detail=0', '--set', 'termlog_verbosity=error', '--set', 'connection_strategy=lazy', '--set', 'upstream_cert=false', '--set', 'confdir=' + str(STORE / 'certificates')]
             hosts = '|'.join(re.escape(host) for host in self.scenario['hosts'])
             command.extend(['--set', 'allow_hosts=^(?:' + hosts + r')(:\d+)?$'])

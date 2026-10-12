@@ -4,10 +4,9 @@
 ## Default tool: Scout
 
 Use Scout for mobile exploration, test execution, and evidence collection in this
-repository. Scout exploration satisfies the pre-authoring exploration requirement;
-ARTEMIS is optional and is not a prerequisite. Use ARTEMIS only when explicitly
-requested by the user. These instructions replace the earlier ARTEMIS-first
-mobile testing workflow for this repository.
+repository. Scout exploration satisfies the pre-authoring exploration requirement.
+Copy this block into another repository's AGENTS.md or CLAUDE.md to give coding
+agents the same workflow there.
 
 ## Explore before authoring mobile tests
 
@@ -42,7 +41,7 @@ mobile testing workflow for this repository.
   the Android app ID is unknown. Never substitute an Android ID for iOS.
 - Verify the installed app ID/build and prepared account, permission, fixture,
   and network state. Declaring `conditions_confirmed` does not prove setup.
-- Run only one controller on a device at a time. Never run Scout, ARTEMIS, or
+- Run only one controller on a device at a time. Never run Scout and
   supplemental Appium/ADB actions concurrently on the same device.
 - Use the appropriate returned IDs for progress, results, and saved dashboard
   evidence as documented in `docs/mcp.md`. Monitor asynchronous runs through
@@ -115,8 +114,7 @@ mobile testing workflow for this repository.
   them in chat, case definitions, traces, or fixture bodies.
 - Diagnose Scout failures using its actual tool errors, local logs, and documented
   setup. Distinguish dashboard, bridge, authentication, workspace, Appium/device,
-  app/build, and proxy/CA failures. Do not assume a diagnostic tool exists or
-  require ARTEMIS diagnostics for Scout. Ask before installing software.
+  app/build, and proxy/CA failures. Do not assume a diagnostic tool exists. Ask before installing software.
 - If Scout tools are missing, inspect the MCP host's server logs and checkout
   path against `docs/mcp.md`. For device failures, follow
   `docs/appium-trial.md` or `docs/ios-appium.md`; inspect available run artifacts
