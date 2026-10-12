@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python checks (${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --extra sandbox
+      - name: Run checks
+        # Synthetic contract checks; no device or model calls. Each module runs on its own.
+        run: |
+          status=0
+          for file in checks/test_*.py; do
+            module="checks.$(basename "${file%.py}")"
+            echo "::group::$module"
+            PYTHONPATH=checks uv run --locked python -m unittest "$module" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+  dashboard:
+    name: Dashboard type-check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit -p .
+
+  package:
+    name: Package and MCP manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - run: uv build
+      - run: uvx twine check dist/*
+      - name: Smoke-test the wheel outside the checkout
+        run: |
+          uv venv /tmp/wheel-env
+          uv pip install --python /tmp/wheel-env/bin/python dist/*.whl
+          cd /tmp && HOME=/tmp/scout-home /tmp/wheel-env/bin/scout nodes > /dev/null
+          test -d /tmp/scout-home/.scout
+      - name: Validate server.json
+        run: |
+          schema=$(jq -r '."$schema"' server.json)
+          curl -fsSL "$schema" -o /tmp/server.schema.json
+          uvx check-jsonschema --schemafile /tmp/server.schema.json server.json
+      - name: Versions agree
+        run: |
+          version=$(uv run --no-project python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          test "$(jq -r .version server.json)" = "$version"
+          test "$(jq -r '.packages[0].version' server.json)" = "$version"

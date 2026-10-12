@@ -31,7 +31,8 @@ def _ready(url: str) -> bool:
 
 def _environment() -> dict[str, str]:
     env = os.environ.copy()
-    env['APPIUM_HOME'] = str(ROOT / 'tooling/appium/.appium')
+    if (ROOT / 'tooling/appium').is_dir():
+        env['APPIUM_HOME'] = str(ROOT / 'tooling/appium/.appium')
     if not env.get('ANDROID_HOME'):
         sdk = env.get('ANDROID_SDK_ROOT')
         if not sdk:
@@ -62,15 +63,19 @@ def ensure_appium(url: str) -> None:
         if occupied:
             raise DeviceError('Port 4723 is occupied but Appium is not ready. Check the server before running.')
         entrypoint = ROOT / 'tooling/appium/node_modules/appium/index.js'
-        if not entrypoint.is_file():
-            raise DeviceError('Appium server is missing. Follow docs/appium-trial.md to install them once.')
-        node = shutil.which('node')
-        if not node:raise DeviceError('Node.js is missing from PATH; it is required to start Appium.')
+        if entrypoint.is_file():
+            node = shutil.which('node')
+            if not node:raise DeviceError('Node.js is missing from PATH; it is required to start Appium.')
+            command = [node, str(entrypoint)]
+        elif shutil.which('appium'):
+            command = [shutil.which('appium')]
+        else:
+            raise DeviceError('Appium server is missing. Install it once (npm install -g appium, then add the uiautomator2 or xcuitest driver); see docs/appium-trial.md.')
         log_dir = ROOT / 'runner-output'
         log_dir.mkdir(parents=True, exist_ok=True)
         try:
             with (log_dir / 'appium-server.log').open('ab') as log:
-                _PROCESS = subprocess.Popen([node, str(entrypoint), '--address', '127.0.0.1', '--port', '4723', '--log-level', 'warn'], cwd=ROOT, env=_environment(), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+                _PROCESS = subprocess.Popen([*command, '--address', '127.0.0.1', '--port', '4723', '--log-level', 'warn'], cwd=ROOT, env=_environment(), stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         except OSError as exc:
             raise DeviceError(f'Could not start local Appium ({type(exc).__name__}).') from None
         deadline = time.monotonic() + 20

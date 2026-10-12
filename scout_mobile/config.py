@@ -3,7 +3,23 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_DIR = Path(__file__).resolve().parent
+
+def _workspace_root() -> Path:
+    """Where .env, runner-output/ and sandbox state live.
+
+    SCOUT_HOME wins; a source checkout uses itself; a pip/uvx install uses ~/.scout.
+    """
+    home = os.environ.get('SCOUT_HOME', '').strip()
+    if home:
+        return Path(home).expanduser().resolve()
+    checkout = PACKAGE_DIR.parent
+    if (checkout / 'pyproject.toml').is_file():
+        return checkout
+    return Path.home() / '.scout'
+
+ROOT = _workspace_root()
+ROOT.mkdir(parents=True, exist_ok=True)
 
 def getenv(name: str, default: str | None = None) -> str | None:
     """Prefer Scout settings; accept the previous prefix for existing setups."""

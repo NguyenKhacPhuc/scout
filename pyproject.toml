@@ -1,19 +1,44 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "scout-mobile"
 version = "0.1.0"
-description = "Scout mobile testing platform with MCP, Appium, verification, evidence, and sandbox scenarios"
+description = "AI-driven Android and iOS testing over MCP: explore apps from a prompt, verify checkpoints, keep the evidence."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{ name = "Nguyen Khac Phuc" }]
 requires-python = ">=3.11"
+keywords = ["mcp", "mobile-testing", "appium", "android", "ios", "qa", "test-automation", "ai-agent"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = ["mcp>=1.9,<2", "Appium-Python-Client>=5,<6"]
 
 [project.optional-dependencies]
 appium = [] # Compatibility with the earlier optional installation command.
 sandbox = ["mitmproxy>=11,<13"]
 
+[project.urls]
+Homepage = "https://github.com/NguyenKhacPhuc/scout"
+Documentation = "https://github.com/NguyenKhacPhuc/scout/tree/main/docs"
+Issues = "https://github.com/NguyenKhacPhuc/scout/issues"
+Changelog = "https://github.com/NguyenKhacPhuc/scout/blob/main/CHANGELOG.md"
+
 [project.scripts]
+# `uvx scout-mobile` starts the MCP server (same as scout-mcp).
+scout-mobile = "scout_mobile.mcp_server:main"
 scout = "scout_mobile.__main__:main"
 scout-mcp = "scout_mobile.mcp_server:main"
 scout-local-runner = "scout_mobile.local_server:main"

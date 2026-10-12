@@ -1,0 +1,34 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.NguyenKhacPhuc/scout",
+  "title": "Scout",
+  "description": "AI-driven Android and iOS app testing: explore from a prompt, verify checkpoints, keep evidence.",
+  "repository": {
+    "url": "https://github.com/NguyenKhacPhuc/scout",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "scout-mobile",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "TYPESAFE_API_KEY",
+          "description": "TypeSafe API key for Jev decisions and classification checkpoints.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "SCOUT_HOME",
+          "description": "Workspace for .env, runs and evidence. Defaults to ~/.scout, or the source checkout.",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}

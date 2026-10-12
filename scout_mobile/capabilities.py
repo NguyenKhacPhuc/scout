@@ -7,11 +7,11 @@ from pathlib import Path
 import sys
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
-from .config import ROOT, getenv
+from .config import PACKAGE_DIR, ROOT, getenv
 from .execution_contract import FEATURES, supported
 
-_sources=sorted((ROOT/'scout_mobile').rglob('*.py'))
-BUILD_IDENTITY={'component':'scout-runner','source_sha256':hashlib.sha256(b''.join(p.relative_to(ROOT/'scout_mobile').as_posix().encode()+p.read_bytes() for p in _sources)).hexdigest(),'source_root':str(ROOT),'python':sys.version.split()[0]}
+_sources=sorted(PACKAGE_DIR.rglob('*.py'))
+BUILD_IDENTITY={'component':'scout-runner','source_sha256':hashlib.sha256(b''.join(p.relative_to(PACKAGE_DIR).as_posix().encode()+p.read_bytes() for p in _sources)).hexdigest(),'source_root':str(ROOT),'python':sys.version.split()[0]}
 
 
 def capabilities(platform='Android',backend='appium'):

@@ -4,7 +4,12 @@ The local MCP server exposes the Android and iOS runner to MCP clients. Jev choo
 
 ## Setup
 
-Install uv and Python 3.11 or newer, then install the project dependencies once:
+The quickest setup is the published package: `uvx scout-mobile` starts this server, and
+`~/.scout` (or `SCOUT_HOME`) holds `.env`, runs and evidence. See the
+[README quickstart](../README.md#quickstart-mcp-server). The dashboard requires the source
+checkout described below.
+
+From a source checkout, install uv and Python 3.11 or newer, then install the project dependencies once:
 
     cd /path/to/scout
     uv sync
@@ -21,7 +26,7 @@ Add a local stdio server to the MCP client configuration (replace `/path/to/scou
     command = "uv"
     args = ["run", "--directory", "/path/to/scout", "scout-mcp"]
 
-Restart or reload the MCP client after changing its configuration. The server loads .env from the project directory.
+Restart or reload the MCP client after changing its configuration. The server loads .env from the project directory (or `SCOUT_HOME`).
 
 ## Claude Desktop
 

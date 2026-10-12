@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in Scout doesn't work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Do not paste credentials, tokens, real account data or private app screenshots.** Redact them first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected, and what Scout did instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The prompt or test case (redacted), and the MCP tool or CLI command you used.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [Android, iOS, Both, Dashboard only]
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS
+      placeholder: "Pixel 8 emulator, Android 15 / iPhone 15 simulator, iOS 18"
+  - type: input
+    id: version
+    attributes:
+      label: Scout version or commit
+      placeholder: "0.1.0 or a commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run Scout?
+      options: [uvx scout-mobile, Source checkout, Other]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Result, trace or log excerpt
+      description: Relevant redacted lines from result.json, trace.json or runner-output/*.log.
+      render: text
